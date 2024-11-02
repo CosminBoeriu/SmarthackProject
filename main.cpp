@@ -10,14 +10,16 @@ struct Edge
     int from, to, capacity, cost;
 };
 
-vector<vector<int>> adj, cost, capacity;
+vector<vector<int>> adj;
+vector<vector<vector<int>>> cost, capacity;
 
 const int INF = 1e9;
 
 // start node, end node,
 int bfs(int s, int t, vector<int>& parent) {
-    fill(parent.begin(), parent.end(), -1);
-    parent[s] = -2;
+    fill(parent.begin(), parent.end(), 0);
+    //s nu e 0 va rog
+    parent[s] = s;
     queue<pair<int, int>> q;
     q.push({s, INF});
 
@@ -25,17 +27,19 @@ int bfs(int s, int t, vector<int>& parent) {
         int cur = q.front().first;
         int flow = q.front().second;
         q.pop();
-        for (int next : adj[cur]) {
-            if (parent[next] == -1 && capacity[cur][next]) {
-                parent[next] = cur;
-                int new_flow = min(flow, capacity[cur][next]);
-                if (next == t)
-                    return new_flow;
-                q.push({next, new_flow});
+        for (int intoarcere = 0; intoarcere < 2; intoarcere++) {
+            for (int next = 0; next < adj[cur].size(); next++ ) {
+                if (parent[next] == 0 && capacity[intoarcere][cur][next]) {
+                    // If intoarcere = 0 => normal edge, else I took the augmenting edge
+                    parent[next] = cur * (1 - intoarcere * 2);
+                    int new_flow = min(flow, capacity[intoarcere][cur][next]);
+                    if (next == t)
+                        return new_flow;
+                    q.push({next, new_flow});
+                }
             }
         }
     }
-
     return 0;
 }
 
@@ -50,15 +54,18 @@ int maxflow(int n, int s, int t) {
         int cur = t;
         while (cur != s) {
             int prev = parent[cur];
-            capacity[prev][cur] -= new_flow;
-            capacity[cur][prev] += new_flow;
+            int intoarcere = 0;
+            if (prev < 0)
+                intoarcere = 1;
+            capacity[intoarcere][prev][cur] -= new_flow;
+            capacity[1 - intoarcere * 2][prev][cur] += new_flow;
             cur = prev;
         }
         new_flow = bfs(s, t, parent);
     }
     return flow;
 }
-
+/*
 void shortest_paths(int n, int v0, vector<int>& d, vector<int>& p) {
     d.assign(n, INF);
     d[v0] = 0;
@@ -128,9 +135,15 @@ int min_cost_flow(int N, vector<Edge> edges, int K, int s, int t) {
     else
         return cost;
 }
-
+*/
 int main() {
     std::cout << "Hello, World!" << std::endl;
-    
+    adj = vector<vector<int>>(2);
+    adj[1] = {2, 3};
+    adj[2] = {3, 4};
+    adj[3] = {2};
+    adj[4] = {};
+    capacity[0] =
+
     return 0;
 }
