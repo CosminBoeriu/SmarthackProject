@@ -5,18 +5,40 @@
 #include <unistd.h>
 #include <vector>
 #include <sstream>
+#include "algorithm.cpp"
 
-struct Demand {
-    std::string customer_id;
-    int quantity;
-    int post_day;
-    int start_delivery_day;
-    int end_delivery_day;
-};
 std::vector<Demand> demands;
 
+//Mat - zi, from, to;
+vector<vector<vector<int>>>mat;
+int current_day = 0;
+void update_mats_days(vector<vector<vector<int>>>&roads){
+    for(const vector<vector<int>>&road: roads){
+        for(vector<int>tuple: road){
+            Connection conn = connections[node_guid_to_dec_id[mapper_connection_ids[tuple[0]][tuple[1]]]];
+            int arrival_time = conn.lead_time_days;
+            int val = mat[current_day][tuple[0]][tuple[1]] - tuple[2];
+            for(int i = current_day+1; i < current_day + arrival_time; i++){
+                mat[i][tuple[0]][tuple[1]] = val;
+            }
+            mat[current_day+arrival_time][tuple[1]][cloned[tuple[1]]] += tuple[2];
+        }
+    }
+}
+
+void update_refins(){
+    for(Refinery r: refineries){
+        mat[current_day+1][1][r.dec_id] += r.production;
+    }
+}
+
+void update_demands(){
+    for(Demand d: demands){
+        mat[current_day+1][node_guid_to_dec_id[d.customer_id]][n] += d.quantity;
+    }
+}
+
 std::vector<Demand> parseDemands(const std::string& encoded) {
-    std::vector<Demand> demands;
 
     std::istringstream iss(encoded);
     int num_demands;
@@ -82,7 +104,10 @@ int main() {
     int opt = 1;
     int addrlen = sizeof(address);
     const int PORT = 12345;
-
+    parse_refineries_csv();
+    parse_tanks_csv();
+    parse_customer_csv();
+    parse_connection_csv();
     if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
         perror("socket failed");
         exit(EXIT_FAILURE);
@@ -130,7 +155,24 @@ int main() {
 
         if(strncmp(buffer, "move", 4) == 0)
         {
-            //Run algo get moves
+            mat = vector(43, vector<vector<int>>() );
+            mat[0] = init_network(refineries, customers, tanks, connections, node_guid_to_dec_id)[0];
+            vector<vector<vector<int>>>roads = algorithm();
+            const char* encoded_roads;
+            vector<Movement>moves;
+            for(vector<vector<int>>road: roads){
+                for(vector<int>tuple: road){
+                    Connection c = connections[node_guid_to_dec_id[mapper_connection_ids[tuple[0]][tuple[1]]]];
+                    moves.push_back(Movement(c.id, tuple[2]));
+                }
+            }
+            encoded_roads = encodeMovements(moves);
+            send(new_socket, encoded_roads, strlen(encoded_roads), 0);
+            update_mats_days(roads);
+            update_refins();
+            update_demands();
+            current_day++;
+            update_capacity_matrix(mat[current_day]);
         }
         else if(strncmp(buffer, "quit", 4) == 0)
         {

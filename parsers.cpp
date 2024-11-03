@@ -3,8 +3,12 @@
 #include <sstream>
 #include <vector>
 #include <string>
+#include <map>
 
-int node_num;
+std::map<std::string, int>node_guid_to_dec_id;
+
+int node_num = 2;
+int con_num = 1;
 struct Customer {
     int dec_id;
     std::string id;
@@ -18,7 +22,7 @@ struct Customer {
 std::vector<Customer> customers;
 void parse_customer_csv()
 {
-    std::ifstream file("/Users/dariadragomir/Documents/GitHub/Sorting-Algorithms-Analysis/challengeSmarthack/eval-platform/src/main/resources/liquibase/data/customers.csv");
+    std::ifstream file("/home/cosmin/IdeaProjects/challengeSmarthack/eval-platform/src/main/resources/liquibase/data/customers.csv");
 
     std::string line;
     
@@ -47,6 +51,7 @@ void parse_customer_csv()
         cust.dec_id = node_num++;
 
         customers.push_back(cust);
+        node_guid_to_dec_id[cust.id] = cust.dec_id;
     }
 
 
@@ -74,7 +79,7 @@ void parse_refineries_csv()
 {
     std::string line;
 
-    std::ifstream file("/Users/dariadragomir/Documents/GitHub/Sorting-Algorithms-Analysis/challengeSmarthack/eval-platform/src/main/resources/liquibase/data/refineries.csv");
+    std::ifstream file("/home/cosmin/IdeaProjects/challengeSmarthack/eval-platform/src/main/resources/liquibase/data/refineries.csv");
     std::getline(file, line);
 
     while (std::getline(file, line)) {
@@ -119,6 +124,7 @@ void parse_refineries_csv()
 
 
         refineries.push_back(refinery);
+        node_guid_to_dec_id[refinery.id] = refinery.dec_id;
     }
 
 
@@ -126,6 +132,13 @@ void parse_refineries_csv()
 
 }
 
+struct Demand {
+    std::string customer_id;
+    int quantity;
+    int post_day;
+    int start_delivery_day;
+    int end_delivery_day;
+};
 
 struct Tank {
     std::string id;
@@ -145,7 +158,7 @@ struct Tank {
 std::vector<Tank> tanks;
 void parse_tanks_csv()
 {
-    std::ifstream file("/Users/dariadragomir/Documents/GitHub/Sorting-Algorithms-Analysis/challengeSmarthack/eval-platform/src/main/resources/liquibase/data/tanks.csv");
+    std::ifstream file("/home/cosmin/IdeaProjects/challengeSmarthack/eval-platform/src/main/resources/liquibase/data/tanks.csv");
 
     std::string line;
 
@@ -191,38 +204,39 @@ void parse_tanks_csv()
         tank.dec_id = node_num++;
 
         tanks.push_back(tank);
+        node_guid_to_dec_id[tank.id] = tank.dec_id;
     }
 
     file.close();
 
 }
 
-
 struct Connection {
     int dec_id;
+    std::string id;
     std::string from_id;
     std::string to_id;
     int distance;
     int lead_time_days;
     std::string connection_type;
     int max_capacity;
+
 };
 
 std::vector<Connection> connections;
 void parse_connection_csv() {
-    std::ifstream file("/Users/dariadragomir/Documents/GitHub/Sorting-Algorithms-Analysis/challengeSmarthack/eval-platform/src/main/resources/liquibase/data/connections.csv");
+    std::ifstream file("/home/cosmin/IdeaProjects/challengeSmarthack/eval-platform/src/main/resources/liquibase/data/connections.csv");
 
     std::string line;
 
     std::getline(file, line);
-    int lineNum = 1;
     while (std::getline(file, line)) {
         std::stringstream ss(line);
         std::string token;
 
         Connection conn;
 
-        std::getline(ss, token, ';'); // id - not used
+        std::getline(ss, conn.id, ';');
         std::getline(ss, conn.from_id, ';');
         std::getline(ss, conn.to_id, ';');
         std::getline(ss, token, ';');
@@ -232,9 +246,10 @@ void parse_connection_csv() {
         std::getline(ss, conn.connection_type, ';');
         std::getline(ss, token, ';');
         conn.max_capacity = std::stoi(token);
-        conn.dec_id = lineNum++;
+        conn.dec_id = con_num++;
 
         connections.push_back(conn);
+        node_guid_to_dec_id[conn.id] = conn.dec_id;
     }
 
     file.close();
@@ -249,7 +264,7 @@ struct Movement {
     Movement(const std::string& id, int amount) : id(id), amount(amount) {}
 };
 
-std::string encodeMovements(const std::vector<Movement>& movements) {
+const char* encodeMovements(const std::vector<Movement>& movements) {
     std::ostringstream oss;
 
     oss << movements.size() << " ";
@@ -261,5 +276,5 @@ std::string encodeMovements(const std::vector<Movement>& movements) {
         }
     }
 
-    return oss.str();
+    return oss.str().c_str();
 }
