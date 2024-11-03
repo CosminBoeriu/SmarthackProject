@@ -90,28 +90,35 @@ def parse_movements(response):
     return ret
 
 
-df_con = pd.read_csv("/Users/dariadragomir/challengeSmarthack/eval-platform/target/classes/liquibase/data/connections.csv" , sep=';')
-df_ref = pd.read_csv("/Users/dariadragomir/challengeSmarthack/eval-platform/target/classes/liquibase/data/refineries.csv", sep=';')
+df_con = pd.read_csv("/home/cosmin/IdeaProjects/challengeSmarthack/eval-platform/src/main/resources/liquibase/data/connections.csv" , sep=';')
+df_ref = pd.read_csv("/home/cosmin/IdeaProjects/challengeSmarthack/eval-platform/src/main/resources/liquibase/data/refineries.csv", sep=';')
 # Check if df_ref is loaded correctly and has data
 
+df_tanks = pd.read_csv("/home/cosmin/IdeaProjects/challengeSmarthack/eval-platform/src/main/resources/liquibase/data/refineries.csv", sep=';')
 
+df_tanks = df_tanks['id']
 df_ref = df_ref['id']
+df_con2 = df_con[df_con["from_id"].isin(df_tanks)]
 df_con = df_con[df_con["from_id"].isin(df_ref)]
 
 session_id = make_start_request("7bcd6334-bc2e-4cbf-b9d4-61cb9e868869")
 print(session_id)
 for day in range(42):
     movements = []
-    no_movements = np.random.randint(1, 6)
-    for _ in range(no_movements):
-        movements.append({"connectionId" : df_con.sample(n=1)["id"].values[0], "amount" : np.random.randint(1, 6)})
+    no_movements_ref = np.random.randint(10, 17)
+    no_movements_tanks = np.random.randint(5, 13)
+    for _ in range(no_movements_ref):
+        movements.append({"connectionId" : df_con.sample(n=1)["id"].values[0], "amount" : np.random.randint(13, 17)})
+    for _ in range(no_movements_tanks):
+        movements.append({"connectionId": df_con2.sample(n=1)["id"].values[0], "amount": np.random.randint(5, 13)})
+    print(len(movements))
     resp = make_play_request("7bcd6334-bc2e-4cbf-b9d4-61cb9e868869", session_id, {"day": day, "movements": movements})
-    print(resp)
+    print(json.dumps(resp, indent=4))
     #add_penalty_to_list(resp)
     #update_kpi(resp)
     #sock.send(parse_demands(resp))
     #print(f"Day: {total_kpis['day']}, Cost: {total_kpis['cost']}, CO2: {total_kpis['co2']}")
-    
+print()
 make_stop_request("7bcd6334-bc2e-4cbf-b9d4-61cb9e868869", session_id)
 #sock.send(b"quit")
 
